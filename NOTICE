@@ -1,0 +1,41 @@
+OpenDesign X
+Copyright 2026 OpenDesign X contributors
+
+This product is a modification of Open Design.
+
+--------------------------------------------------------------------------------
+OPEN DESIGN
+--------------------------------------------------------------------------------
+
+Open Design
+Copyright nexu-io and Open Design contributors
+https://github.com/nexu-io/open-design
+
+Licensed under the Apache License, Version 2.0.
+See https://www.apache.org/licenses/LICENSE-2.0
+
+This repository is pinned against upstream commit
+78d5637cb49da07e81314d1544b5fc6d37c95084 (version 0.25.1).
+
+--------------------------------------------------------------------------------
+SCOPE OF THIS REPOSITORY
+--------------------------------------------------------------------------------
+
+This is a patch repository. It contains only the original modifications made on
+top of Open Design, expressed as a patch and as the changed files.
+
+It does not redistribute upstream source code, upstream git history, or
+contributor identities. To build the modified product, apply the patch to a
+checkout of upstream at the pinned commit shown above.
+
+The files listed under changed-files/ are modified versions of upstream files
+and therefore remain subject to the upstream Apache License 2.0. The
+modifications themselves are also released under the Apache License 2.0.
+
+--------------------------------------------------------------------------------
+THIRD-PARTY COMPONENTS
+--------------------------------------------------------------------------------
+
+This project depends on third-party open source components resolved through the
+upstream package manifest and lockfile, each under its own license. No
+third-party source is vendored in this repository.

@@ -1,0 +1,28 @@
+# --- Secrets and credentials -------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+secrets/
+**/secrets.json
+credentials.json
+
+# --- Local machine state ------------------------------------------------------
+# Never commit absolute paths, build outputs, or captured logs. They leak the
+# local username, machine layout, and internal hostnames.
+*.log
+!.gitkeep
+build-output/
+shots/
+probes/
+.tmp/
+
+# --- Node / pnpm --------------------------------------------------------------
+node_modules/
+dist/
+*.tsbuildinfo
+.pnpm-store/

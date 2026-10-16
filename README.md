@@ -25,7 +25,7 @@ Work proceeds in stages. Each stage ships functional software.
 
 | Stage | Scope | Status |
 |---|---|---|
-| **A** | Real installable Windows `.exe` | 🔶 Unpacked build green; NSIS installer blocked |
+| **A** | Real installable Windows `.exe` | 🔶 Installer **builds** (422.3 MB, exit 0); install cannot be executed in this environment |
 | **B** | Preserve daemon, auth, agents, external APIs | ⬜ Not started |
 | **C** | New interface: onboarding, home, Studio, model config | ⬜ Not started |
 | **C2** | Full dark mode across shell, chat, viewer, home | ⬜ Not started |
@@ -79,23 +79,68 @@ Files: [`tools/pack/src/win/app.ts`](changed-files/tools/pack/src/win/app.ts),
 [`tools/pack/src/win/prebundle.ts`](changed-files/tools/pack/src/win/prebundle.ts),
 [`tools/pack/src/launcher/packaged-entry.ts`](changed-files/tools/pack/src/launcher/packaged-entry.ts)
 
-### 2. Windows NSIS build unblocked at the toolchain level
+### 2. Windows NSIS installer now builds
 
-electron-builder's Go `app-builder` extracts `winCodeSign-2.6.0.7z`, which contains
-two macOS symlinks. Without `SeCreateSymbolicLinkPrivilege`, 7-Zip fails with
-`Cannot create symbolic link` and the installer build aborts.
+Three independent blockers sat between a green `--to dir` build and a real setup
+`.exe`. Only the last was a genuine code defect; the first two were toolchain and
+environment, and pinning them down mattered because the obvious diagnoses were wrong.
 
-The workaround seeds a pristine, checksum-valid kit from the electron-builder cache
-and serves it over a loopback HTTP mirror, so extraction never has to create the
-symlinks. Serving a **repacked symlink-free** archive does not work — electron-builder
-verifies the archive sha512, so the archive must be byte-identical.
+**(a) `winCodeSign` symlinks.** electron-builder's Go `app-builder` extracts
+`winCodeSign-2.6.0.7z`, which contains two macOS symlinks. Without
+`SeCreateSymbolicLinkPrivilege`, 7-Zip reports `Cannot create symbolic link`.
+It turned out not to be fatal: 83 files still extract, including `signtool.exe`
+and `rcedit-x64.exe`, so the Windows kit is complete and signing works. The fix
+seeds a pristine, checksum-valid kit from the electron-builder cache and serves it
+over a loopback HTTP mirror, so extraction never reaches the symlinks. Serving a
+**repacked symlink-free** archive does not work — electron-builder verifies the
+archive sha512, so the served archive must be byte-identical.
 
-Files: [`tools/pack/src/win/builder.ts`](changed-files/tools/pack/src/win/builder.ts)
+**(b) `makensis` missing, then read-only.** The build then failed with
+`makensis is required to build the Windows installer`. Installing NSIS system-wide
+resolved that, but exposed the next problem: the generated script references
+`LANG_PERSIAN`, and stock NSIS ships `Farsi.nlf`, not `Persian.nlf`. The existing
+alias step copies the file in place, which is impossible under `Program Files` for
+a non-elevated user (`EPERM`).
 
-> **Still blocked.** The mirror approach handles the checksum and the kit, but the
-> NSIS lane additionally needs the symbolic-link privilege itself. Enabling Windows
-> Developer Mode grants it at logon, so it requires a sign-out/sign-in to take effect.
-> The `--to dir` lane bypasses NSIS entirely and builds green.
+The first attempted fix — copy the whole NSIS tree to a writable path and build
+with the staged `makensis.exe` — **made things worse**. The staged binary failed
+with `Internal compiler error #12345: error creating mmap the size of 278921220`
+on a payload the installed binary compiled fine. Measured side by side on an
+identical 250 MB payload:
+
+| `makensis.exe` location | Result |
+|---|---|
+| `C:\Program Files (x86)\NSIS\` | exit 0, installer produced |
+| `<workspace>\.tmp\tools-pack\nsis-staged\` | `error creating mmap` |
+
+So the staging approach was the cause, and it was reverted.
+
+**The actual fix.** `MUI_LANGUAGE` hardcodes `${NSISDIR}\Contrib\Language files`,
+but the underlying `MUI_LANGUAGEEX` macro accepts an explicit directory:
+
+```nsis
+!insertmacro MUI_LANGUAGEEX "C:\...\nsis-language-alias" "Persian"
+```
+
+The build now copies the language files to a writable alias directory, adds
+`Persian.nlf` there, and routes **only** the Persian entry through
+`MUI_LANGUAGEEX`. Every other language keeps the default path. The installed NSIS
+is never modified and no elevation is needed. The in-place alias step also skips
+read-only roots instead of failing, since a system-wide NSIS is expected.
+
+Result: `pnpm tools-pack win build --to nsis` completes all ten phases and produces
+`Open Design-rg-setup.exe` at 422.3 MB.
+
+Files: [`tools/pack/src/win/builder.ts`](changed-files/tools/pack/src/win/builder.ts),
+[`tools/pack/src/win/custom-installer.ts`](changed-files/tools/pack/src/win/custom-installer.ts),
+[`tools/pack/src/win/nsis.ts`](changed-files/tools/pack/src/win/nsis.ts)
+
+> **Not yet proven:** the installer builds, but it cannot be *executed* in this
+> environment. A minimal control installer — no project code, one `File` and one
+> `FileWrite` — returns exit code 0 and never runs its own `Section`, matching the
+> same GUI-subsystem restriction that prevents the packaged app from opening a
+> window here. Launching the installer and the installed app needs a normal
+> interactive desktop session.
 
 ### 3. Three additional model providers
 
@@ -125,7 +170,8 @@ pnpm guard
 pnpm typecheck
 pnpm --filter @open-design/tools-pack test
 pnpm --filter @open-design/tools-pack build
-pnpm tools-pack win build --dir C:\odx-dir --namespace odx --to dir --json
+pnpm tools-pack win build --dir C:\odx-dir --namespace rg --to dir --json
+pnpm tools-pack win build --dir C:\odx-dir --namespace rg --to nsis --json
 ```
 
 Measured results:
@@ -136,6 +182,8 @@ Measured results:
 | `pnpm typecheck` | exit 0, no errors |
 | `tools-pack` test suite | `6 failed \| 38 passed` (44 files), `13 failed \| 328 passed \| 5 skipped` (346 tests) |
 | `win build --to dir` | exit 0, all phases green |
+| `win build --to nsis` | exit 0, all ten phases green |
+| NSIS artifact | `Open Design-rg-setup.exe`, 442,797,841 bytes (422.3 MB) |
 
 The failing tests are **pre-existing and environmental**, proven by stashing the
 changes and reproducing identical counts on unmodified upstream:
@@ -151,14 +199,21 @@ This change introduces **zero** new failures.
 **Verified:** the bundle's `electron` resolution, the build pipeline, `guard`,
 `typecheck`, the test baseline, and the artifact contents.
 
-**Not verified:** that the packaged app renders a window. In this development
-environment, launching `Open Design.exe` produced no process and no output — and a
-three-line minimal Electron app with no product code failed identically, never
-executing its first line. The binary itself works (`--version` responds,
-`ELECTRON_RUN_AS_NODE` file writes succeed), so this is Chromium GUI initialization
-failing in a non-interactive shell rather than a defect in the package.
+**Not verified:** that the packaged app renders a window, and that the generated
+installer completes an install. In this development environment, launching
+`Open Design.exe` produced no process and no output — and a three-line minimal
+Electron app with no product code failed identically, never executing its first
+line. The binary itself works (`--version` responds, `ELECTRON_RUN_AS_NODE` file
+writes succeed), so this is Chromium GUI initialization failing in a
+non-interactive shell rather than a defect in the package.
 
-**The final launch check must be performed by a person on a normal desktop session.**
+NSIS installers hit the same ceiling. A minimal control installer — no project
+code, one `File` and one `FileWrite` — returns exit code 0 but never runs its
+`Section` and never writes its proof file, so the install path could not be
+exercised here either.
+
+**The final launch and install checks must be performed by a person on a normal
+desktop session.**
 
 ---
 

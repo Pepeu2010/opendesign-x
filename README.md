@@ -162,13 +162,16 @@ failing in a non-interactive shell rather than a defect in the package.
 
 ---
 
-## Attribution
+## License
 
-Built on [Open Design](https://github.com/nexu-io/open-design) by nexu-io and
-contributors, licensed under the Apache License 2.0. See [`NOTICE`](NOTICE).
+The upstream project is licensed under the **Apache License 2.0**. See
+[`NOTICE`](NOTICE) for attribution and [`ORIGINAL-MODS-LICENSE.txt`](ORIGINAL-MODS-LICENSE.txt)
+for the terms covering the original modifications.
 
 This repository contains only original modifications. It deliberately does not
 redistribute upstream source, upstream git history, or contributor identities.
 Pinned to upstream commit `78d5637cb49da07e81314d1544b5fc6d37c95084`.
 
-Original modifications are likewise released under the Apache License 2.0.
+The files under [`changed-files/`](changed-files/) are modified versions of upstream
+files and remain subject to the upstream Apache License 2.0. The modifications
+themselves are also released under the Apache License 2.0.

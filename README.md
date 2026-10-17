@@ -468,7 +468,7 @@ environment, not regression.
 - attached installer: `OpenDesign.X-rg-setup.exe` (422 MB — GitHub normalizes
   the space to a dot; built name is `OpenDesign X-rg-setup.exe`),
   `latest.yml` sidecar, sha256
-  `8dedeb72c855d0032ecbc0cdadd0e7fda9bb8768433fced316c5f95fdf25a761`;
+  `2f1f6e7e47d8686c4a59970fc0dcd67084785ce8df582918792cb21d2280abc2` (portable rebuild 17/10; the first upload baked a build-machine path and exited at startup — fixed);
 - installed product identity: window title, Start Menu shortcut, Apps entry,
   and unpacked exe all read `OpenDesign X.exe` / `OpenDesign X`;
 

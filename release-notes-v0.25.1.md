@@ -23,3 +23,13 @@ A cadeia completa de validação (typecheck, guard, suítes focais, 12 fluxos de
 - Dados: `%APPDATA%\OpenDesign X\namespaces\rg` (isolados por namespace)
 
 Aviso: fork independente mantido por Pepeu2010; sem afiliação com o projeto OpenDesign original. Código-fonte completo no repositório.
+
+## Capturas de tela
+
+| Home (claro) | Home (escuro) |
+|---|---|
+| ![Home claro](https://github.com/Pepeu2010/opendesign-x/raw/main/docs/screenshots/01-entry.png) | ![Home escuro](https://github.com/Pepeu2010/opendesign-x/raw/main/docs/screenshots/theme-dark-entry.png) |
+
+| Workspace (escuro) | Assistente de provedor | Lista de modelos |
+|---|---|---|
+| ![Workspace](https://github.com/Pepeu2010/opendesign-x/raw/main/docs/screenshots/workspace-dark-project.png) | ![Wizard](https://github.com/Pepeu2010/opendesign-x/raw/main/docs/screenshots/wizard-step2-known.png) | ![Modelos](https://github.com/Pepeu2010/opendesign-x/raw/main/docs/screenshots/14-provider-list.png) |

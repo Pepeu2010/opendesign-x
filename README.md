@@ -490,6 +490,20 @@ channel build of this fork would read `OpenDesign X Beta` etc. This fork does
 not publish to upstream's feed (`releases.open-design.ai`); GitHub releases on
 this repository are the delivery surface.
 
+### 12. Screenshots (captured during the 12-flow validation)
+
+| Entry (light) | Entry (dark) |
+|---|---|
+| ![Entry light](docs/screenshots/01-entry.png) | ![Entry dark](docs/screenshots/theme-dark-entry.png) |
+
+| Workspace project panel (dark) | Add provider wizard | Provider list |
+|---|---|---|
+| ![Workspace dark](docs/screenshots/workspace-dark-project.png) | ![Wizard](docs/screenshots/wizard-step2-known.png) | ![Providers](docs/screenshots/14-provider-list.png) |
+
+All captures were taken from the running daemon/web runtime during the
+verification flows documented above (dark-mode audits, the 3-path wizard, and
+the provider discovery list).
+
 ### Verified versus unverified
 
 **Verified:** the bundle's `electron` resolution, the build pipeline, `guard`,

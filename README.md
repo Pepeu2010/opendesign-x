@@ -461,16 +461,27 @@ environment, not regression.
 
 ### 11. GitHub releases carry the OpenDesign X identity
 
-The fork's published releases on this repository show `OpenDesign X` as the
-product: the tag/release title reads `OpenDesign X <version>`, and the
-attached Windows installer is built with the renamed identity — artifact
+**Published: [OpenDesign X v0.25.1](https://github.com/Pepeu2010/opendesign-x/releases/tag/v0.25.1-odx.1)**
+(latest release on this repository), built from commit `016ff59` with
+`pnpm tools-pack win build --namespace rg --to nsis`:
+
+- attached installer: `OpenDesign.X-rg-setup.exe` (422 MB — GitHub normalizes
+  the space to a dot; built name is `OpenDesign X-rg-setup.exe`),
+  `latest.yml` sidecar, sha256
+  `8dedeb72c855d0032ecbc0cdadd0e7fda9bb8768433fced316c5f95fdf25a761`;
+- installed product identity: window title, Start Menu shortcut, Apps entry,
+  and unpacked exe all read `OpenDesign X.exe` / `OpenDesign X`;
+
+The tag/release title reads `OpenDesign X <version>`, and the attached Windows
+installer is built with the renamed identity — artifact
 `OpenDesign X-rg-setup.exe`, shortcut `OpenDesign X.lnk`, uninstall entry
 `OpenDesign X`, window title `OpenDesign X`. The `gh` workflow used:
 
 ```bash
 gh release create v0.25.1-odx.1 <installer.exe> \
   --title "OpenDesign X v0.25.1" \
-  --notes "..."
+  --notes-file ./release-notes-v0.25.1.md \
+  --latest
 ```
 
 **Note on upstream channels:** upstream's four release channels (stable/beta/

@@ -1,1 +1,126 @@
-// @vitest-environment jsdomimport { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';import { afterEach, describe, expect, it, vi } from 'vitest';import { SettingsDialog } from '../../src/components/SettingsDialog';import { DEFAULT_CONFIG } from '../../src/state/config';import { applyAppearanceToDocument, resolveThemeAttribute } from '../../src/state/appearance';import type { AgentInfo, AppConfig } from '../../src/types';afterEach(() => {  cleanup();  vi.restoreAllMocks();  document.documentElement.removeAttribute('data-theme');});const SAVEABLE_AGENTS: AgentInfo[] = [  {    id: 'codex',    name: 'Codex',    bin: 'codex',    available: true,  } as AgentInfo,];function renderDialog(initial: AppConfig) {  return render(    <SettingsDialog      initial={initial}      agents={SAVEABLE_AGENTS}      daemonLive      appVersionInfo={null}      initialSection="general"      onPersist={vi.fn()}      onPersistComposioKey={vi.fn()}      onClose={vi.fn()}      onRefreshAgents={vi.fn()}    />,  );}describe('SettingsDialog theme selector', () => {  it('renders the theme selector with the persisted value selected', () => {    renderDialog({ ...DEFAULT_CONFIG, theme: 'dark' });    const select = screen.getByLabelText('Theme') as HTMLSelectElement;    expect(select.value).toBe('dark');  });  it('changing the selector updates the draft, and the persisted value drives the document', async () => {    const onPersist = vi.fn();    // Re-render with the harness wired the way App.tsx consumes it: the dialog    // hands the draft to onPersist, and the app shell stamps the document.    const onPersistComposioKey = vi.fn();    const first = render(      <SettingsDialog        initial={{ ...DEFAULT_CONFIG, theme: 'light' }}        agents={SAVEABLE_AGENTS}        daemonLive        appVersionInfo={null}        initialSection="general"        onPersist={onPersist}        onPersistComposioKey={onPersistComposioKey}        onClose={vi.fn()}        onRefreshAgents={vi.fn()}      />,    );    const select = screen.getByLabelText('Theme') as HTMLSelectElement;    expect(select.value).toBe('light');    fireEvent.change(select, { target: { value: 'dark' } });    expect(select.value).toBe('dark');    // The dialog's job ends at emitting the persisted value; the shell applies    // it. Persistence is debounced, so wait for the autosave tick.    await waitFor(() => {      expect(onPersist).toHaveBeenCalled();    });    const persistedCall = onPersist.mock.calls.find(      (call) => (call[0] as AppConfig)?.theme === 'dark',    );    expect(persistedCall).toBeTruthy();    // Simulate the shell applying the persisted config (App.tsx's effect).    applyAppearanceToDocument({      accentColor: persistedCall![0].accentColor,      theme: persistedCall![0].theme,    });    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');    first.unmount();  });  it('offers exactly the three supported themes', () => {    renderDialog({ ...DEFAULT_CONFIG });    const select = screen.getByLabelText('Theme') as HTMLSelectElement;    const values = [...select.options].map((option) => option.value);    expect(values).toEqual(['light', 'dark', 'system']);  });});// The pre-hydration script and the runtime applier must agree for the same// stored value, otherwise a dark user sees a light flash before hydration.describe('appearance pipeline consistency', () => {  it('resolves the same attribute the pre-hydration script resolves', () => {    const { readFileSync } = require('node:fs') as typeof import('node:fs');    const { dirname, resolve } = require('node:path') as typeof import('node:path');    const { fileURLToPath } = require('node:url') as typeof import('node:url');    const source = readFileSync(      resolve(dirname(fileURLToPath(import.meta.url)), '../../app/layout.tsx'),      'utf8',    );    for (const theme of ['light', 'dark', 'system'] as const) {      applyAppearanceToDocument({ accentColor: '#059669', theme });      expect(document.documentElement.getAttribute('data-theme')).toBe(        resolveThemeAttribute(theme),      );    }    expect(source).toContain("if(c.theme==='dark')t='dark'");    expect(source).toContain("else if(c.theme==='system')t=null");  });});
+// @vitest-environment jsdom
+
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { SettingsDialog } from '../../src/components/SettingsDialog';
+import { DEFAULT_CONFIG } from '../../src/state/config';
+import { applyAppearanceToDocument, resolveThemeAttribute } from '../../src/state/appearance';
+import type { AgentInfo, AppConfig } from '../../src/types';
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  document.documentElement.removeAttribute('data-theme');
+});
+
+const SAVEABLE_AGENTS: AgentInfo[] = [
+  {
+    id: 'codex',
+    name: 'Codex',
+    bin: 'codex',
+    available: true,
+  } as AgentInfo,
+];
+
+function renderDialog(initial: AppConfig) {
+  return render(
+    <SettingsDialog
+      initial={initial}
+      agents={SAVEABLE_AGENTS}
+      daemonLive
+      appVersionInfo={null}
+      initialSection="general"
+      onPersist={vi.fn()}
+      onPersistComposioKey={vi.fn()}
+      onClose={vi.fn()}
+      onRefreshAgents={vi.fn()}
+    />,
+  );
+}
+
+describe('SettingsDialog theme selector', () => {
+  it('renders the theme selector with the persisted value selected', () => {
+    renderDialog({ ...DEFAULT_CONFIG, theme: 'dark' });
+
+    const select = screen.getByLabelText('Theme') as HTMLSelectElement;
+    expect(select.value).toBe('dark');
+  });
+
+  it('changing the selector updates the draft, and the persisted value drives the document', async () => {
+    const onPersist = vi.fn();
+    // Re-render with the harness wired the way App.tsx consumes it: the dialog
+    // hands the draft to onPersist, and the app shell stamps the document.
+    const onPersistComposioKey = vi.fn();
+    const first = render(
+      <SettingsDialog
+        initial={{ ...DEFAULT_CONFIG, theme: 'light' }}
+        agents={SAVEABLE_AGENTS}
+        daemonLive
+        appVersionInfo={null}
+        initialSection="general"
+        onPersist={onPersist}
+        onPersistComposioKey={onPersistComposioKey}
+        onClose={vi.fn()}
+        onRefreshAgents={vi.fn()}
+      />,
+    );
+
+    const select = screen.getByLabelText('Theme') as HTMLSelectElement;
+    expect(select.value).toBe('light');
+
+    fireEvent.change(select, { target: { value: 'dark' } });
+    expect(select.value).toBe('dark');
+
+    // The dialog's job ends at emitting the persisted value; the shell applies
+    // it. Persistence is debounced, so wait for the autosave tick.
+    await waitFor(() => {
+      expect(onPersist).toHaveBeenCalled();
+    });
+    const persistedCall = onPersist.mock.calls.find(
+      (call) => (call[0] as AppConfig)?.theme === 'dark',
+    );
+    expect(persistedCall).toBeTruthy();
+
+    // Simulate the shell applying the persisted config (App.tsx's effect).
+    applyAppearanceToDocument({
+      accentColor: persistedCall![0].accentColor,
+      theme: persistedCall![0].theme,
+    });
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+
+    first.unmount();
+  });
+
+  it('offers exactly the three supported themes', () => {
+    renderDialog({ ...DEFAULT_CONFIG });
+
+    const select = screen.getByLabelText('Theme') as HTMLSelectElement;
+    const values = [...select.options].map((option) => option.value);
+    expect(values).toEqual(['light', 'dark', 'system']);
+  });
+});
+
+// The pre-hydration script and the runtime applier must agree for the same
+// stored value, otherwise a dark user sees a light flash before hydration.
+describe('appearance pipeline consistency', () => {
+  it('resolves the same attribute the pre-hydration script resolves', () => {
+    const { readFileSync } = require('node:fs') as typeof import('node:fs');
+    const { dirname, resolve } = require('node:path') as typeof import('node:path');
+    const { fileURLToPath } = require('node:url') as typeof import('node:url');
+
+    const source = readFileSync(
+      resolve(dirname(fileURLToPath(import.meta.url)), '../../app/layout.tsx'),
+      'utf8',
+    );
+
+    for (const theme of ['light', 'dark', 'system'] as const) {
+      applyAppearanceToDocument({ accentColor: '#059669', theme });
+      expect(document.documentElement.getAttribute('data-theme')).toBe(
+        resolveThemeAttribute(theme),
+      );
+    }
+
+    expect(source).toContain("if(c.theme==='dark')t='dark'");
+    expect(source).toContain("else if(c.theme==='system')t=null");
+  });
+});

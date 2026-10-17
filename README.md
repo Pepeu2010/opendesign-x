@@ -434,6 +434,26 @@ changes and reproducing identical counts on unmodified upstream:
 
 This change introduces **zero** new failures.
 
+### 10. Fork identity: own name, own icon, no collision with the original install
+
+Requirement 8 asked for the fork to behave as its own Windows application —
+name, icon, directories — without overwriting a user's original OpenDesign
+install. Audited against `tools/pack/src/win/identity.ts`, most of that already
+exists and is enforced by tests; the round shipped the missing pieces:
+
+| Identity surface | Approach |
+|---|---|
+| Uninstall registry key | **Already distinct** — `Open Design-rg` for namespace `rg` (`resolveWindowsUninstallRegistryKey`), none of upstream's four channel keys |
+| Start Menu shortcut + ARP display name | **Already distinct** — `Open Design rg.lnk` / `Open Design rg` (identity derivation `${PRODUCT_NAME} ${namespace}`) |
+| Install directory + data/log/runtime/cache roots | **Already distinct** — namespace-scoped paths; ports never enter path decisions |
+| Packaged window title | **Fixed** — non-channel namespaces now derive `Open Design <namespace>`, matching the installer identity instead of collapsing every local build to the stable brand (upstream's four channel titles untouched, pinned by tests) |
+| Window / tab name | **Fork brand** — the web app title is `OpenDesign X` (live-verified); the packaged desktop window keeps its installer name by design (`page-title-updated` is prevented, per channel-identity tests) |
+| App icon | **Own icon** — a programmatically generated mark (dark tile, two-tone crossing monogram) replaces the packaged `.ico`/`.png`s and the web favicon; the `.ico` carries all six required sizes (16–256) and the repo copies are byte-verified opening as valid ICO/PNG |
+
+Verification: `pnpm typecheck` + `pnpm guard` exit 0 on the full monorepo;
+`window-title.test.ts` 6/6 (channel identities unchanged, `rg` → `Open Design
+rg`, `beta-local-flow` → its own display name); `window-chrome.test.ts` 8/8;
+live browser title reads `OpenDesign X`.
 
 ### Verified versus unverified
 

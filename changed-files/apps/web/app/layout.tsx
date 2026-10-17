@@ -1,1 +1,64 @@
-import type { Metadata, Viewport } from 'next';import type { ReactNode } from 'react';import { I18nProvider } from '../src/i18n';import { AnalyticsProvider } from '../src/analytics/provider';import '@excalidraw/excalidraw/index.css';import '../src/index.css';import '../src/styles/home/index.css';// These hosts render from the client-only App entry. Keep their layout CSS in// the root route stylesheet so Turbopack does not leave the lazy chunk as a// preload-only resource after the host mounts.import '../src/components/TestCampaignModal.module.css';import '../src/components/HoverTouchpointOverlay.module.css';import '../src/components/ProductionCampaignBadge.module.css';import '../src/components/OnboardingWelcome.module.css';export const metadata: Metadata = {  title: 'OpenDesign',  icons: {    icon: '/app-icon.png',    apple: '/app-icon.png',  },};export const viewport: Viewport = {  themeColor: [    { media: '(prefers-color-scheme: light)', color: '#f7f7f7' },    { media: '(prefers-color-scheme: dark)', color: '#202020' },  ],};/** * Inline script that runs before React hydrates so the first paint already * carries the app's appearance — no flash of unstyled content. * * The stored theme is applied before first paint: `dark` stamps the dark * attribute, `system` removes it so the CSS `html:not([data-theme])` rule can * follow the OS preference, and a missing, invalid, or unreadable value stamps * `light` (the default). The attribute must always be PRESENT unless the user * chose `system`, because several modules read the attribute directly and fall * back to `prefers-color-scheme` when it is missing (`shiki`, `ConnectorLogo`, * `SketchEditor`, `TerminalViewer`, `connectorBrandColor`, `MentionNode`). * Keep the resolution in sync with `resolveAppTheme()` / * `resolveThemeAttribute()` in `src/state/appearance.ts`, and the accent * variable mix ratios with `accentVars()` in that same file; this script * cannot import application modules. */const themeInitScript = `(function(){var t='light',c=null;try{c=JSON.parse(localStorage.getItem('open-design:config')||'{}');}catch(e){c=null;}if(c){if(c.theme==='dark')t='dark';else if(c.theme==='system')t=null;}if(t===null)document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);try{if(c){var a=typeof c.accentColor==='string'&&/^#[0-9a-fA-F]{6}$/.test(c.accentColor.trim())?c.accentColor.trim().toLowerCase():'#353535';if(c.configMigrationVersion!==3&&(a==='#87ea5c'||a==='#c96442'))a='#353535';var s=document.documentElement.style;s.setProperty('--accent',a);s.setProperty('--accent-strong','color-mix(in srgb, '+a+' 82%, var(--text-strong))');s.setProperty('--accent-soft','color-mix(in srgb, '+a+' 12%, var(--bg-subtle))');s.setProperty('--accent-tint','color-mix(in srgb, '+a+' 6%, var(--bg-panel))');s.setProperty('--accent-hover','color-mix(in srgb, '+a+' 86%, var(--text-strong))');}}catch(e){}})();`;export default function RootLayout({ children }: { children: ReactNode }) {  return (    <html lang='en' suppressHydrationWarning>      {/* eslint-disable-next-line @next/next/no-sync-scripts */}      <head>        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: intentional theme-init inline script to prevent FOUC */}        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />      </head>      <body suppressHydrationWarning>        <I18nProvider>          <AnalyticsProvider>{children}</AnalyticsProvider>        </I18nProvider>      </body>    </html>  );}
+import type { Metadata, Viewport } from 'next';
+import type { ReactNode } from 'react';
+import { I18nProvider } from '../src/i18n';
+import { AnalyticsProvider } from '../src/analytics/provider';
+import '@excalidraw/excalidraw/index.css';
+import '../src/index.css';
+import '../src/styles/home/index.css';
+// These hosts render from the client-only App entry. Keep their layout CSS in
+// the root route stylesheet so Turbopack does not leave the lazy chunk as a
+// preload-only resource after the host mounts.
+import '../src/components/TestCampaignModal.module.css';
+import '../src/components/HoverTouchpointOverlay.module.css';
+import '../src/components/ProductionCampaignBadge.module.css';
+import '../src/components/OnboardingWelcome.module.css';
+
+export const metadata: Metadata = {
+  title: 'OpenDesign X',
+  icons: {
+    icon: '/app-icon.png',
+    apple: '/app-icon.png',
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f7f7f7' },
+    { media: '(prefers-color-scheme: dark)', color: '#202020' },
+  ],
+};
+
+/**
+ * Inline script that runs before React hydrates so the first paint already
+ * carries the app's appearance â€” no flash of unstyled content.
+ *
+ * The stored theme is applied before first paint: `dark` stamps the dark
+ * attribute, `system` removes it so the CSS `html:not([data-theme])` rule can
+ * follow the OS preference, and a missing, invalid, or unreadable value stamps
+ * `light` (the default). The attribute must always be PRESENT unless the user
+ * chose `system`, because several modules read the attribute directly and fall
+ * back to `prefers-color-scheme` when it is missing (`shiki`, `ConnectorLogo`,
+ * `SketchEditor`, `TerminalViewer`, `connectorBrandColor`, `MentionNode`).
+ * Keep the resolution in sync with `resolveAppTheme()` /
+ * `resolveThemeAttribute()` in `src/state/appearance.ts`, and the accent
+ * variable mix ratios with `accentVars()` in that same file; this script
+ * cannot import application modules.
+ */
+const themeInitScript = `(function(){var t='light',c=null;try{c=JSON.parse(localStorage.getItem('open-design:config')||'{}');}catch(e){c=null;}if(c){if(c.theme==='dark')t='dark';else if(c.theme==='system')t=null;}if(t===null)document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);try{if(c){var a=typeof c.accentColor==='string'&&/^#[0-9a-fA-F]{6}$/.test(c.accentColor.trim())?c.accentColor.trim().toLowerCase():'#353535';if(c.configMigrationVersion!==3&&(a==='#87ea5c'||a==='#c96442'))a='#353535';var s=document.documentElement.style;s.setProperty('--accent',a);s.setProperty('--accent-strong','color-mix(in srgb, '+a+' 82%, var(--text-strong))');s.setProperty('--accent-soft','color-mix(in srgb, '+a+' 12%, var(--bg-subtle))');s.setProperty('--accent-tint','color-mix(in srgb, '+a+' 6%, var(--bg-panel))');s.setProperty('--accent-hover','color-mix(in srgb, '+a+' 86%, var(--text-strong))');}}catch(e){}})();`;
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang='en' suppressHydrationWarning>
+      {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+      <head>
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: intentional theme-init inline script to prevent FOUC */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
+      <body suppressHydrationWarning>
+        <I18nProvider>
+          <AnalyticsProvider>{children}</AnalyticsProvider>
+        </I18nProvider>
+      </body>
+    </html>
+  );
+}

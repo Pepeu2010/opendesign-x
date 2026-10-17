@@ -443,17 +443,41 @@ exists and is enforced by tests; the round shipped the missing pieces:
 
 | Identity surface | Approach |
 |---|---|
-| Uninstall registry key | **Already distinct** — `Open Design-rg` for namespace `rg` (`resolveWindowsUninstallRegistryKey`), none of upstream's four channel keys |
-| Start Menu shortcut + ARP display name | **Already distinct** — `Open Design rg.lnk` / `Open Design rg` (identity derivation `${PRODUCT_NAME} ${namespace}`) |
-| Install directory + data/log/runtime/cache roots | **Already distinct** — namespace-scoped paths; ports never enter path decisions |
-| Packaged window title | **Fixed** — non-channel namespaces now derive `Open Design <namespace>`, matching the installer identity instead of collapsing every local build to the stable brand (upstream's four channel titles untouched, pinned by tests) |
+| Product name (all platforms) | **Renamed** — `PRODUCT_NAME = "OpenDesign X"` in `packages/release`, `packages/sidecar-proto` (`OPEN_DESIGN_PRODUCT_NAME`), and `tools/pack` (win/mac/linux constants); every installer display name, shortcut, exe name, artifact name and PE metadata derives from it |
+| appId | **Renamed** — `ai.opendesignx.desktop` (was `io.open-design.desktop`) across the win builder, mac identity and linux lane |
+| Uninstall registry key | `OpenDesign X-rg` for namespace `rg` — no collision with an original `Open Design` install |
+| Named pipes | `opendesign-x-sidecar-*` and prefix `opendesign-x` — the fork and the original app can run at the same time without IPC collisions |
+| Packaged window title | `OpenDesign X` (non-channel namespaces match the installer identity; release channels derive `OpenDesign X <channel>`) |
 | Window / tab name | **Fork brand** — the web app title is `OpenDesign X` (live-verified); the packaged desktop window keeps its installer name by design (`page-title-updated` is prevented, per channel-identity tests) |
 | App icon | **Own icon** — a programmatically generated mark (dark tile, two-tone crossing monogram) replaces the packaged `.ico`/`.png`s and the web favicon; the `.ico` carries all six required sizes (16–256) and the repo copies are byte-verified opening as valid ICO/PNG |
 
 Verification: `pnpm typecheck` + `pnpm guard` exit 0 on the full monorepo;
-`window-title.test.ts` 6/6 (channel identities unchanged, `rg` → `Open Design
-rg`, `beta-local-flow` → its own display name); `window-chrome.test.ts` 8/8;
-live browser title reads `OpenDesign X`.
+`win-identity.test.ts` 13/13, packaged suite 354/359 (the 5 `prewarm` failures
+are pre-existing on this machine — identical under `git stash`), release
+package 6/6, sidecar-proto and sidecar suites green. Two suites
+(`win-custom-installer`, `launcher/windows/payload`) fail with sandbox
+`spawn UNKNOWN` on nested executables at the exact same count as baseline —
+environment, not regression.
+
+### 11. GitHub releases carry the OpenDesign X identity
+
+The fork's published releases on this repository show `OpenDesign X` as the
+product: the tag/release title reads `OpenDesign X <version>`, and the
+attached Windows installer is built with the renamed identity — artifact
+`OpenDesign X-rg-setup.exe`, shortcut `OpenDesign X.lnk`, uninstall entry
+`OpenDesign X`, window title `OpenDesign X`. The `gh` workflow used:
+
+```bash
+gh release create v0.25.1-odx.1 <installer.exe> \
+  --title "OpenDesign X v0.25.1" \
+  --notes "..."
+```
+
+**Note on upstream channels:** upstream's four release channels (stable/beta/
+prerelease/preview) now also derive from the fork's identity constants, so a
+channel build of this fork would read `OpenDesign X Beta` etc. This fork does
+not publish to upstream's feed (`releases.open-design.ai`); GitHub releases on
+this repository are the delivery surface.
 
 ### Verified versus unverified
 

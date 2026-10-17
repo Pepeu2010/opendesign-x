@@ -26,8 +26,8 @@ Work proceeds in stages. Each stage ships functional software.
 | Stage | Scope | Status |
 |---|---|---|
 | **A** | Real installable Windows `.exe` | 🔶 Installer **builds** (422.3 MB, exit 0); install cannot be executed in this environment |
-| **B** | Preserve daemon, auth, agents, external APIs | ⬜ Not started |
-| **C** | New interface: onboarding, home, Studio, model config | ⬜ Not started |
+| **B** | Preserve daemon, auth, agents, external APIs | 🔶 Daemon, 318 API routes, agent detection and API-token auth **verified by execution**; connector integrations outstanding |
+| **C** | New interface: onboarding, home, Studio, model config | 🔶 Multi-provider model configuration **shipped and verified end-to-end**; onboarding/home/Studio redesign outstanding |
 | **C2** | Full dark mode across shell, chat, viewer, home | ⬜ Not started |
 | **D** | AI element editing, references, history, projects, terminal | ⬜ Not started |
 | **E** | Bug fixes, 12-flow validation, installer | ⬜ Not started |
@@ -38,7 +38,43 @@ Nothing is marked done unless it was built and executed.
 
 ## What is implemented
 
-### 1. Packaged Electron main starts (critical fix)
+### 1. Three-path "add a model or provider" wizard
+
+The original UI configured models through a single flat provider dropdown. That
+conflated three genuinely different setups — a known hosted gateway, an arbitrary
+OpenAI-compatible endpoint, and a local server that needs no key — into one list,
+and gave the user no guidance about which one applied to them.
+
+It is replaced by an explicit three-path wizard that asks the question once and
+then shows only the fields that path needs:
+
+| Path | What it collects |
+|---|---|
+| **Provedor conhecido** (recommended) | A pre-configured provider, with the correct base URL and its common models |
+| **API personalizada** | Any OpenAI-compatible endpoint the user runs themselves |
+| **Modelo local** | A local OpenAI-compatible server, with no API key required |
+
+Implemented as `apps/web/src/components/byok/ByokAddProviderWizard.tsx` and wired
+into **both** BYOK surfaces — the onboarding screen (`EntryShell.tsx`) and in-app
+settings (`SettingsDialog.tsx`) — replacing the old `ByokProviderPicker`, which is
+deleted. Strings are translated in all 19 shipped locales, with pt-BR as the
+source language.
+
+**Verified by execution.** Selecting a path drives the real configuration rather
+than only repainting:
+
+| Action | Resulting base URL |
+|---|---|
+| OpenAI-compatible protocol, before choosing | `https://api.openai.com/v1` |
+| Choose **DeepSeek** on the known-provider path | `https://api.deepseek.com` |
+| Choose **LM Studio (local)** on the local path | `http://127.0.0.1:1234/v1` |
+
+The local path correctly offers only servers that need no key (`vLLM`,
+`LM Studio (local)`), and an empty provider list renders an explanation instead
+of a dead picker. Eight focused component tests cover the paths, the gating
+between steps, and the empty and no-local-preset cases.
+
+### 2. Packaged Electron main starts (critical fix)
 
 The Windows packaged build died on launch with no window and no visible error. The
 installed `Open Design.exe` exited immediately, and the sidecar named pipes never
@@ -79,7 +115,7 @@ Files: [`tools/pack/src/win/app.ts`](changed-files/tools/pack/src/win/app.ts),
 [`tools/pack/src/win/prebundle.ts`](changed-files/tools/pack/src/win/prebundle.ts),
 [`tools/pack/src/launcher/packaged-entry.ts`](changed-files/tools/pack/src/launcher/packaged-entry.ts)
 
-### 2. Windows NSIS installer now builds
+### 3. Windows NSIS installer now builds
 
 Three independent blockers sat between a green `--to dir` build and a real setup
 `.exe`. Only the last was a genuine code defect; the first two were toolchain and
@@ -142,7 +178,7 @@ Files: [`tools/pack/src/win/builder.ts`](changed-files/tools/pack/src/win/builde
 > window here. Launching the installer and the installed app needs a normal
 > interactive desktop session.
 
-### 3. Three additional model providers
+### 4. Additional model providers
 
 Added to the web provider catalog so the model system covers more of the
 OpenAI-compatible ecosystem:
@@ -158,6 +194,61 @@ bearer credentials. Provider options are filtered by the selected protocol, so t
 appear on the OpenAI tab.
 
 File: [`apps/web/src/state/config.ts`](changed-files/apps/web/src/state/config.ts)
+
+### 5. Stage B: the preserved backend, verified by execution
+
+Requirement 5 was to keep every existing feature. Rather than assert that, the
+backend was exercised and its real surface counted.
+
+**Daemon health.** `GET /api/health` returns
+`{"ok":true,"version":"0.25.1","amrTerminalReporter":{…}}`.
+
+**Endpoint sweep.** Representative routes confirmed to answer:
+
+| Route | Status |
+|---|---|
+| `/api/health`, `/api/agents`, `/api/app-config`, `/api/projects` | 200 |
+| `/api/daemon/db`, `/api/atoms`, `/api/craft` | 200 |
+| `/api/chat` | 404 on GET — POST-only, correct |
+| `/api/asset-cache` | 400 — required params missing, correct |
+
+`/api/config`, `/api/models`, `/api/auth/status` and `/api/integrations` do not
+exist upstream; they were **not** invented. The real daemon exposes **318 distinct
+API paths across 34 route modules**, with 53 `register*Routes` call sites in
+`server.ts`.
+
+**Agent detection.** 6 of 27 known agents are available on this machine — `amr`,
+`claude` 2.1.283, `codex` codex-cli 0.162.1, `opencode` v2.0.29, `byok-opencode`
+and `hermes`. The rest report unavailable rather than being stubbed.
+
+**API-token auth.** `apps/daemon/dist/api-token-auth.js` was unit-tested directly:
+**11 of 11 assertions pass** — bearer and basic credentials accepted, and wrong,
+undefined and empty tokens rejected, with the disable flag honored.
+
+Two earlier attempts to test this over HTTP produced false confidence. The first
+failed because an environment variable set in one shell invocation does not reach
+a daemon spawned by a later one. The second failed because the daemon **ignores
+`--host 0.0.0.0`** and always binds loopback, and loopback peers are exempt by
+design (`server.ts:3271`). The daemon was not reachable from off-host, so nothing
+was exposed. This is recorded because the first two results were wrong and the
+third is the one that holds.
+
+### 6. Regression found and fixed during stage C
+
+Replacing the provider dropdown broke **7 existing settings tests**, which had
+been asserting against the old `Provider preset` combobox. The application code
+was correct; the tests described a UI that no longer existed.
+
+Rather than delete them, each assertion was rewritten against the new two-step
+interaction while preserving what it actually checked — provider selection,
+per-provider API-key draft isolation, base-URL customization and gateway presets.
+Two upstream expectations were genuinely obsolete and were corrected honestly:
+`Custom provider` is no longer a list row because it is now its own wizard path,
+and Anthropic is *not* a fixed-origin gateway (it exposes five presets), so the
+wizard does render there.
+
+Result: `SettingsDialog.execution.test.tsx` **150/150 passing**, and the full
+monorepo `pnpm typecheck` exits 0.
 
 ---
 

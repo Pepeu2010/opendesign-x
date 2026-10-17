@@ -28,7 +28,7 @@ Work proceeds in stages. Each stage ships functional software.
 | **A** | Real installable Windows `.exe` | 🔶 Installer **builds** (422.3 MB, exit 0); install cannot be executed in this environment |
 | **B** | Preserve daemon, auth, agents, external APIs | 🔶 Daemon, 318 API routes, agent detection and API-token auth **verified by execution**; connector integrations outstanding |
 | **C** | New interface: onboarding, home, Studio, model config | 🔶 Multi-provider model configuration **shipped and verified end-to-end**; onboarding/home/Studio redesign outstanding |
-| **C2** | Full dark mode across shell, chat, viewer, home | 🔶 Theme preference **shipped** (light/dark/system, persisted, applied pre-hydration) and **verified live** — zero unadapted surfaces on every reachable screen; deep viewer screens need a real project to probe |
+| **C2** | Full dark mode across shell, chat, viewer, home | 🔶 Preference **shipped and verified live** — entry, workspace home, project file panel, chat composer all audited at **zero unadapted surfaces**; four real light-only regressions found and fixed in the process |
 | **D** | AI element editing, references, history, projects, terminal | ⬜ Not started |
 | **E** | Bug fixes, 12-flow validation, installer | ⬜ Not started |
 
@@ -299,6 +299,35 @@ real project and agent (the workspace shell blocks on "Carregando…" in this
 headless session), so "full dark mode" is verified for every surface reachable
 end to end plus the complete token file, not for the deep viewer screens. That
 residual check belongs to the human smoke test on an interactive desktop.
+
+**The boundary then moved.** Creating a project through the sanctioned
+`POST /api/projects` endpoint unlocked the deep-link route
+(`/projects/<id>` bypasses onboarding), and loading the real workspace in dark
+immediately disproved "zero unadapted surfaces" for the deeper shell: five
+elements rendered white-on-dark (light background, near-white text — literally
+unreadable). A cascade bisect (disable each linked stylesheet, then walk every
+matching rule) pinned all of them:
+
+| Surface | Owner | Bug |
+|---|---|---|
+| Design-files panel, list, body | `styles/viewer/routines.css` | `.app .df-panel, .app .df-main, .app .df-body { background: #fff }` — literal white in a viewer stylesheet reaching outside its domain, overriding the token-based base rules by specificity |
+| Design-files empty state | `styles/workspace/design-files.css` | `background-color: #fff` with a comment calling it "plain pure-white" |
+| Chat composer shell + queued cards + floating preview | `components/chat/ChatRoot.module.css` | the `--chat-*` theme seam defined `--chat-floating-card-bg: #fff` in the **dark scope too**, because the design spec predates dark and only gave the light pair |
+| Workspace home content card | `styles/home/entry-layout.css` | `--entry-content-surface: rgba(255,255,255,.85)` defined with no dark override |
+
+Fixes stay inside each file's own seam contract: workspace literals become
+`var(--bg)` (the same token their base layer falls back to), the chat seam gets
+dark values only in the root module's existing dark scope (`--bg-panel` /
+`--text-strong` — zero component changes, per the chat panel's seam rule), and
+the entry card gains a `[data-theme='dark']` + media-query pair following the
+wash-token pattern in `app-wash.css`.
+
+Re-scan after the fix, live against the runtime: **0 light surfaces** on the
+entry screen, the workspace home (`Pepeu's workspace` with a real project
+listed), and the project file panel — confirmed three ways (entry scanner,
+composer/df targeted sweep, and the full-DOM workspace audit). The chat queue
+suites that consume the floating-card token still pass (13/13), and monorepo
+`pnpm typecheck` + `pnpm guard` exit 0.
 
 ---
 

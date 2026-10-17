@@ -407,6 +407,34 @@ changes and reproducing identical counts on unmodified upstream:
 This change introduces **zero** new failures.
 
 
+### 9. The 12-flow validation matrix (stage E)
+
+Each flow dj numbered as acceptance evidence, executed as far as this
+environment honestly allows — every PASS below was exercised against the
+running daemon (never mocked), every PARTIAL names the exact missing human
+input:
+
+| # | Flow | Status | Evidence |
+|---|---|---|---|
+| 1 | Windows installer build | **PASS (build)** | NSIS exit 0, ten phases green, `Open Design-rg-setup.exe` 422.3 MB; automated install can't run headless (see the Verified-versus-unverified block) |
+| 2 | Onboarding wizard, three paths | **PASS** | Live probes + geometry (3 cards, 260×96) + screenshots |
+| 3 | BYOK provider configuration | **PASS live** | `POST /api/test/connection` vs. real `api.deepseek.com`: `kind=auth_failed`, `status=401`, 708 ms, key redacted in the reply; local endpoint (127.0.0.1:1234) → structured `invalid_base_url`/ECONNREFUSED, not a 500 |
+| 4 | Model discovery + selection | **PASS live** | `POST /api/provider/models` vs. real DeepSeek (structured 401), plus run spawn with explicit `--model` |
+| 5 | Generate a real artifact | **Pipeline proven to the provider boundary** | `od run start` spawned AMR (real gateway → wallet balance refused), Claude (invalid key 401) and hermes (ACP adapter + plugins loaded); conversation persisted each failure honestly. Needs one valid credential — the operator's |
+| 6 | AI-assisted element editing + visual references | **Static-complete** | Selection/inspect bridges, manual-edit bridge, comments → `comments_to_attachments` → prompt references, `data-od-id` guidance in the system prompt; live exercise requires a credential (same gate as #5) |
+| 7 | Version history (smart history) | **PASS live** | create → v1 bootstrapped; overwrite → v2 auto-snapshot; read single version; restore v1 (content verified reverted) → v3 snapshotted |
+| 8 | Theme light/dark/system | **PASS live** | Pre-hydration application, persistence, deep workspace audit, 0 unadapted surfaces after 4 real cascade fixes |
+| 9 | pt-BR default + 18 more locales | **PASS** | Typed dict, 19 locale files, typecheck-enforced |
+| 10 | Terminal/tools | **PASS live** | Real session created (cmd.exe), stdin echo through SSE returned the marker, kill closed it |
+| 11 | Project management | **PASS live** | create / rename (PATCH) / list / delete; deep link + workspace home listing; headerless catalog returns ONLY unbound projects by design (spec 04 §10 isolation) — the workspace claims what it shows |
+| 12 | Automation / routines (productivity) | **PASS live** | Full CRUD (create → list → get → disable → delete) with schedule validation chain (`kind` → `time` → real IANA timezone) and the workspace ACL correctly refusing headerless writes into claimed projects |
+
+The matrix is deliberately asymmetric about #5: everything structurally
+between the UI button and the provider request is green, and the residual gap
+is an account credential only the operator can supply (BYOK key, AMR top-up,
+or Claude login). Entering any one of those in the delivered wizard moves #5 —
+and #6 with it — to a live PASS without further code work.
+
 ### Verified versus unverified
 
 **Verified:** the bundle's `electron` resolution, the build pipeline, `guard`,

@@ -7,6 +7,7 @@ import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 
+
 import { hashJson, hashPath, type CacheNode, ToolPackCache } from "../cache/index.js";
 import type { ToolPackConfig } from "../config/index.js";
 import { domToPptxBundleResource } from "../dom-to-pptx-resource.js";
@@ -47,7 +48,7 @@ import {
   writePackagedConfig,
 } from "./manifest.js";
 import { ensureNsisPersianLanguageAlias, writeNsisInclude } from "./nsis.js";
-import { sanitizeNamespace } from "./paths.js";
+import { resolveWinArtifactNamespaceSuffix, sanitizeNamespace } from "./paths.js";
 import {
   resolveElectronBuilderWinTargets,
   shouldBuildWinNsisInstaller,
@@ -339,6 +340,7 @@ async function runElectronBuilderRaw(
   };
 
   const namespaceToken = sanitizeNamespace(config.namespace);
+  const releaseArtifactNamespaceSuffix = resolveWinArtifactNamespaceSuffix(config.namespace);
   const packagedVersion = await runSegment("electron-builder-raw:read-packaged-version", async () =>
     readPackagedVersion(config)
   );
@@ -384,7 +386,7 @@ async function runElectronBuilderRaw(
     nsis: {
       allowElevation: false,
       allowToChangeInstallationDirectory: true,
-      artifactName: `${PRODUCT_NAME}-${namespaceToken}-setup.\${ext}`,
+      artifactName: `${PRODUCT_NAME}${releaseArtifactNamespaceSuffix}-setup.\${ext}`,
       createDesktopShortcut: true,
       createStartMenuShortcut: true,
       deleteAppDataOnUninstall: false,
@@ -412,7 +414,7 @@ async function runElectronBuilderRaw(
     // unsigned Windows build works without elevation or Developer Mode.
     toolsets: { winCodeSign: "1.0.0" },
     win: {
-      artifactName: `${PRODUCT_NAME}-${namespaceToken}.\${ext}`,
+      artifactName: `${PRODUCT_NAME}${releaseArtifactNamespaceSuffix}.\${ext}`,
       icon: paths.winIconPath,
       target: resolveElectronBuilderWinTargets(config.to).map((target) => ({ arch: ["x64"], target })),
     },

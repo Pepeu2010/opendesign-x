@@ -100,8 +100,21 @@ let startupTelemetryContext:
     }
   | null = null;
 
+/**
+ * A packaged build carries its release feed when it is meant to auto-update.
+ * A build that bakes none has no origin of its own: the desktop updater would
+ * fall back to the vendor default origin and offer a different product's
+ * installer, so packaged runs without a feed opt out of the updater instead
+ * (`OD_UPDATE_ENABLED`, see apps/desktop/src/main/updater/config.ts). An
+ * explicit value in the environment always wins.
+ */
 function applyPackagedUpdaterEnv(updateMetadataUrl: string | null): void {
-  if (updateMetadataUrl == null) return;
+  if (updateMetadataUrl == null) {
+    if (process.env.OD_UPDATE_ENABLED == null || process.env.OD_UPDATE_ENABLED.length === 0) {
+      process.env.OD_UPDATE_ENABLED = "0";
+    }
+    return;
+  }
   if (process.env.OD_UPDATE_METADATA_URL != null && process.env.OD_UPDATE_METADATA_URL.length > 0) return;
   process.env.OD_UPDATE_METADATA_URL = updateMetadataUrl;
 }

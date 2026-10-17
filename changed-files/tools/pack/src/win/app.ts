@@ -28,6 +28,7 @@ import {
   WIN_PREBUNDLED_PACKAGED_MAIN_RELATIVE_PATH,
   WIN_PREBUNDLED_WEB_SIDECAR_RELATIVE_PATH,
   assertWinPrebundleMetafile,
+  assertWinPrebundleNoImportMetaDereference,
   renderWinPackagedMainEntry,
   shouldInstallInternalPackageForWinPrebundle,
   shouldUseWinStandalonePrebundle,
@@ -316,6 +317,10 @@ async function buildPrebundledStandaloneRuntime(
   await assertWinPrebundleMetafile({
     metafilePath: paths.packagedMainPrebundleMetaPath,
     policyName: "packagedMain",
+  });
+  await assertWinPrebundleNoImportMetaDereference({
+    bundlePath: paths.packagedMainPrebundlePath,
+    label: WIN_PREBUNDLE_POLICIES.packagedMain.label,
   });
 
   await runEsbuild(config, [

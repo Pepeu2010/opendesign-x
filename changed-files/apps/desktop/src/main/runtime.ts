@@ -1,9 +1,9 @@
 import { execFile } from "node:child_process";
 import { createHmac, randomBytes } from "node:crypto";
+import { existsSync } from "node:fs";
 import { appendFile, mkdir, realpath, stat, writeFile } from "node:fs/promises";
 import { release } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 import { BrowserWindow, app, dialog, ipcMain, nativeImage, nativeTheme, screen, session, shell, webFrameMain } from "electron";
@@ -35,6 +35,7 @@ import type {
 import { renderDeckSlides } from "./deck-capture.js";
 import { renderDeterministicFrames } from "./frame-capture.js";
 import { openFirstPartyMailto } from "./mailto-open.js";
+import { desktopMainModuleDir } from "./module-dir.js";
 import { openValidatedDirectory } from "./open-path.js";
 import { exportArtifact as exportArtifactFromHtml } from "./artifact-export.js";
 import { createElectronPdfTarget, exportPdfFromHtml, savePrintReadyDocumentAsPdf } from "./pdf-export.js";
@@ -1543,13 +1544,22 @@ export function createSplashWindow(): SplashWindowHandle {
   return { startedAt, window: splash };
 }
 
-function resolveDesktopIconPath(): string {
-  return resolve(dirname(fileURLToPath(import.meta.url)), "../../../web/public/app-icon.png");
+/**
+ * Absolute path of the brand icon for windows and the macOS dock, or `undefined`
+ * when this layout does not ship one. The packaged desktop main is bundled to
+ * CommonJS, where `import.meta` is empty, so this must never throw: a missing
+ * icon leaves the platform default in place.
+ */
+function resolveDesktopIconPath(): string | undefined {
+  const iconPath = resolve(desktopMainModuleDir(import.meta), "../../../web/public/app-icon.png");
+  return existsSync(iconPath) ? iconPath : undefined;
 }
 
 function applyDockIcon(): void {
   if (process.platform !== "darwin" || !app.dock) return;
-  const icon = nativeImage.createFromPath(resolveDesktopIconPath());
+  const iconPath = resolveDesktopIconPath();
+  if (iconPath == null) return;
+  const icon = nativeImage.createFromPath(iconPath);
   if (icon.isEmpty()) return;
   app.dock.setIcon(icon);
 }
@@ -2017,7 +2027,7 @@ async function showDirectoryPickerForSender(
 }
 
 export async function createDesktopRuntime(options: DesktopRuntimeOptions): Promise<DesktopRuntime> {
-  const preloadPath = options.preloadPath ?? join(dirname(fileURLToPath(import.meta.url)), "preload.cjs");
+  const preloadPath = options.preloadPath ?? join(desktopMainModuleDir(import.meta), "preload.cjs");
   applyDockIcon();
 
   // ipcMain.handle() registers a handler in an internal map that is *not*

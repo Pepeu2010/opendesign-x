@@ -28,7 +28,7 @@ Work proceeds in stages. Each stage ships functional software.
 | **A** | Real installable Windows `.exe` | 🔶 Installer **builds** (422.3 MB, exit 0); install cannot be executed in this environment |
 | **B** | Preserve daemon, auth, agents, external APIs | 🔶 Daemon, 318 API routes, agent detection and API-token auth **verified by execution**; connector integrations outstanding |
 | **C** | New interface: onboarding, home, Studio, model config | 🔶 Multi-provider model configuration **shipped and verified end-to-end**; onboarding/home/Studio redesign outstanding |
-| **C2** | Full dark mode across shell, chat, viewer, home | ⬜ Not started |
+| **C2** | Full dark mode across shell, chat, viewer, home | 🔶 Theme preference **shipped** (light/dark/system, persisted, applied pre-hydration) and **verified live** — zero unadapted surfaces on every reachable screen; deep viewer screens need a real project to probe |
 | **D** | AI element editing, references, history, projects, terminal | ⬜ Not started |
 | **E** | Bug fixes, 12-flow validation, installer | ⬜ Not started |
 
@@ -249,6 +249,56 @@ wizard does render there.
 
 Result: `SettingsDialog.execution.test.tsx` **150/150 passing**, and the full
 monorepo `pnpm typecheck` exits 0.
+
+### 7. Stage C2: real dark mode
+
+The product had removed the theme setting with a comment claiming *"the workspace
+surfaces have no dark tokens, so a dark app is a broken app"*. That premise was
+stale. Measured against the live app, forcing `data-theme="dark"` produced a
+coherent dark UI — `#202020` background, `#ededed` text — on every surface this
+environment can reach (entry, provider configuration, settings), with **zero**
+elements stuck in light mode. The complete dark token palette was already in
+`tokens.css`; only the preference had been amputated. A DOM-level scan of every
+rendered element (luminance + computed background) backs the "zero" claim; the
+one surface the scanner flags is the onboarding primary button, which is a
+token-inverted pattern (`background: var(--text-strong); color: var(--bg)`) —
+intentional design, not an unadapted surface.
+
+**What was restored.** The theme preference (`light` default / `dark` /
+`system`) is a real setting again:
+
+- `Settings → General → Aparência` renders a three-value theme selector, wired
+  into the autosaved config like every other setting, translated in all 19
+  locales (pt-BR as the source language).
+- `applyAppearanceToDocument` honors the preference: explicit choices always
+  stamp `data-theme` (several modules read the attribute directly and fall back
+  to the OS preference only when it is absent); `system` is the one value that
+  removes the attribute so the `@media (prefers-color-scheme: dark)` rule can
+  follow the OS.
+- A persisted dark preference is applied **pre-hydration** by the inline script
+  in `app/layout.tsx`, so a dark user never sees a light flash. The script and
+  the runtime applier share one resolution contract, pinned by a test that
+  asserts the script text matches `resolveThemeAttribute` semantics.
+
+**Verified by execution.** Seeding the persisted config directly and loading the
+real app:
+
+| Stored theme | Pre-hydration `data-theme` | Settled `--bg` / `--text` |
+|---|---|---|
+| `dark` | `"dark"` | `#202020` / `#ededed` |
+| `system` | absent (OS decides) | light on a light OS — correct |
+| `light` | `"light"` | `#fff` / `#494949` |
+
+Validation: 13 plumbing tests (`theme-preference.test.ts`), 4 component tests
+(`SettingsDialog.theme.test.tsx`), the retitled `appearance.test.ts` — 25
+passing; the settings execution suite still 150/150; monorepo `pnpm typecheck`
+and `pnpm guard` both exit 0.
+
+**Honest boundary.** The viewer/studio screens cannot be loaded here without a
+real project and agent (the workspace shell blocks on "Carregando…" in this
+headless session), so "full dark mode" is verified for every surface reachable
+end to end plus the complete token file, not for the deep viewer screens. That
+residual check belongs to the human smoke test on an interactive desktop.
 
 ---
 

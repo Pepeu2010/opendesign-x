@@ -1,6 +1,6 @@
 # OpenDesign X v0.25.1
 
-> **Corrigido (17/10 14:00):** a primeira publicação embutia um caminho da máquina de build no instalador, o que impedia o app de iniciar (instala porém não inicia). Reinstale esta versão atualizada — o instalador foi refeito no modo portable, e um segundo defeito interno do arranque empacotado (resolução de módulos no bundle CJS) também foi corrigido (%APPDATA%\OpenDesign X).
+> **Corrigido (17/10 19:10):** a primeira publicação embutia um caminho da máquina de build no instalador, o que impedia o app de iniciar (instala porém não inicia). Reinstale esta versão atualizada — o instalador foi refeito no modo portable, e dois defeitos internos do arranque empacotado também foram corrigidos: a resolução de módulos no bundle CJS que parava antes de qualquer janela, e a resolução do ícone/preload que deixava o processo rodando sem abrir a janela (%APPDATA%\OpenDesign X).
 Primeira entrega pública do **OpenDesign X** — reconstrução e evolução do OpenDesign (fork de github.com/nexu-io/open-design, Apache-2.0) como um aplicativo Windows próprio, com identidade, ícone e diretórios totalmente próprios: nunca sobrescreve a instalação original do OpenDesign.
 
 ## O que vem neste instalador

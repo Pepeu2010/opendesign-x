@@ -468,7 +468,7 @@ environment, not regression.
 - attached installer: `OpenDesign.X-rg-setup.exe` (422 MB — GitHub normalizes
   the space to a dot; built name is `OpenDesign X-rg-setup.exe`),
   `latest.yml` sidecar, sha256
-  `8e37125a658abbf5b2efa79495eac7ef4b8e6e281f2600a20473cdbfc4860e99` (portable rebuild 17/10; the first upload baked a build-machine path and exited at startup — fixed, plus a packaged-main CJS require-base fix);
+  `e82c91efdb833c87e61b722beb2130885a5ce650cad187b4c782589b2bd69e84` (portable rebuild 17/10; removed baked build-machine path, fixed the packaged-main CJS require-base that killed the runtime before any window, and fixed icon/preload paths so the splash opens — the app now reaches the sidecars on the installer machine; name is OpenDesign X-setup.exe and installs to OpenDesign X);
 - installed product identity: window title, Start Menu shortcut, Apps entry,
   and unpacked exe all read `OpenDesign X.exe` / `OpenDesign X`;
 

@@ -253,6 +253,8 @@ monorepo `pnpm typecheck` exits 0.
 ### 7. Stage C2: real dark mode
 
 The product had removed the theme setting with a comment claiming *"the workspace
+
+The product had removed the theme setting with a comment claiming *"the workspace
 surfaces have no dark tokens, so a dark app is a broken app"*. That premise was
 stale. Measured against the live app, forcing `data-theme="dark"` produced a
 coherent dark UI — `#202020` background, `#ededed` text — on every surface this
@@ -328,6 +330,46 @@ listed), and the project file panel — confirmed three ways (entry scanner,
 composer/df targeted sweep, and the full-DOM workspace audit). The chat queue
 suites that consume the floating-card token still pass (13/13), and monorepo
 `pnpm typecheck` + `pnpm guard` exit 0.
+### 8. Stage D: AI-assisted editing, versions, and the run pipeline, verified by execution
+
+Before building anything new, the Etapa D capability list was audited against
+the tree — upstream already ships most of it end to end, so the honest work was
+to verify each one live inside this environment and pay down what the audit
+found broken:
+
+- **Version history** — daemon modules (`project-file-versions.ts`), four HTTP
+  routes (list / snapshot / read / restore), the FileViewer history modal, and
+  `od` CLI cases (`versions`, `version-create/read/restore`). Verified live
+  against the running daemon with a real file in a real project: create →
+  baseline v1 bootstrapped; overwrite → v2 snapshotted automatically; read
+  single version by id returned the exact historical bytes; restore v1 flipped
+  the working file back ("Aurora v1" present, v2 gone) and snapshotted the
+  restore as v3.
+- **Project management** — project created through the sanctioned
+  `POST /api/projects`, conversation auto-created, deep link
+  `/projects/<id>` bypasses onboarding, home lists the project, file panel
+  shows `aurora.html` in dark mode. Screenshot: `workspace-real-file-dark.png`.
+- **AI-assisted element editing + visual references** — the selection bridge
+  (Comment/Inspect, `data-od-id` targeting), manual edit bridge (text/link/
+  image/container), inspect overrides with allow-listed properties and replay
+  contract, comments → `commentsToAttachments` →
+  `normalizeCommentAttachments` → `comment_attachment_references` in the run
+  prompt, plus the system prompt teaching agents stable ids and tweak-marker
+  persistence. Complete upstream; no fictional substitute needed.
+- **Run pipeline** — `od run start` (the same `/api/runs` the UI posts to)
+  spawned each discovered runtime honestly: AMR reached the real cloud gateway
+  and was refused with `insufficient_balance` (the account wallet — a human
+  top-up, beyond this environment); Claude Code was correctly detected as
+  invalid key (401 `AGENT_AUTH_REQUIRED`); hermes' ACP adapter spawned and its
+  plugin chain loaded. Every failure was parsed, classified, retried per
+  policy, and persisted into the conversation — the product's failure
+  surfacing is verified working *to the provider boundary*.
+
+The single remaining input for a fully generated artifact is one valid model
+credential — the operator's DeepSeek key entered through the delivered BYOK
+wizard, an AMR top-up, or a Claude login. Everything structurally between the
+UI button and the provider request is proven green.
+
 
 ---
 
@@ -363,6 +405,7 @@ changes and reproducing identical counts on unmodified upstream:
 - Windows launcher payload tests requiring the symlink privilege
 
 This change introduces **zero** new failures.
+
 
 ### Verified versus unverified
 
